@@ -22,7 +22,7 @@
 
         const app = express()
  
-        const degenRouteLoader = new DegenRouteLoader({})
+        const degenRouteLoader = new DegenRouteLoader()
         degenRouteLoader.loadRoutes( app, Routes , this.apiController  )
 
         app.listen(apiPort, () => {
