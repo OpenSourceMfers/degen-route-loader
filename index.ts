@@ -94,10 +94,11 @@ export default class DegenRouteLoader {
       expressApp[restAction](endpointURI, async (req: any, res: any) => {
        
         req = DegenRouteLoader.appendParams(req, appendParams)
+ 
 
         let endpointResult:AssertionResponse = await this.performEndpointActions(req, controllerClass, formattedRouteData)
  
-        let statusCode = endpointResult.success? this.config.successCode : this.config.failureCode
+        let statusCode = this.config.successCode ///endpointResult.success? this.config.successCode : this.config.failureCode
 
         return res.status(statusCode).send(endpointResult)
       })
