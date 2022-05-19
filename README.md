@@ -77,3 +77,8 @@ preHooks: an array of method names which will be run before the primary method. 
 
 
 
+## Status Codes
+
+If a route contains an error and that error begins with '#___' where '___' is a three digit code, the REST response will not return a 200 status code but instead that three digit code preceeding the error. 
+
+Otherwise, error messages are not allowed to start with the character #.  

@@ -21,18 +21,14 @@ export interface AssertionResponse{
   error?: string 
 }
 export interface Config {
-  verboseLogging?: boolean,
-  successCode?: number,
-  failureCode?: number
+  verboseLogging?: boolean 
 }
 
 
 
 
 const configDefaults: Config = {
-  verboseLogging:false,
-  successCode: 200,
-  failureCode: 401 
+  verboseLogging:false 
 }
 
 
@@ -98,7 +94,16 @@ export default class DegenRouteLoader {
 
         let endpointResult:AssertionResponse = await this.performEndpointActions(req, controllerClass, formattedRouteData)
  
-        let statusCode = this.config.successCode ///endpointResult.success? this.config.successCode : this.config.failureCode
+        let statusCode = 200 
+
+        try{
+          if(endpointResult.error && endpointResult.error.trim().startsWith('#')){
+            let statusCodeString = endpointResult.error.trim().substring(1,4)
+            statusCode = parseInt(statusCodeString)
+          }
+        }catch(err){
+          console.error(err)
+        }
 
         return res.status(statusCode).send(endpointResult)
       })
