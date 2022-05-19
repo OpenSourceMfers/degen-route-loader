@@ -11,9 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const configDefaults = {
-    verboseLogging: false,
-    successCode: 200,
-    failureCode: 401
+    verboseLogging: false
 };
 class DegenRouteLoader {
     constructor(conf) {
@@ -54,7 +52,16 @@ class DegenRouteLoader {
             expressApp[restAction](endpointURI, (req, res) => __awaiter(this, void 0, void 0, function* () {
                 req = DegenRouteLoader.appendParams(req, appendParams);
                 let endpointResult = yield this.performEndpointActions(req, controllerClass, formattedRouteData);
-                let statusCode = endpointResult.success ? this.config.successCode : this.config.failureCode;
+                let statusCode = 200;
+                try {
+                    if (endpointResult.error && endpointResult.error.trim().startsWith('#')) {
+                        let statusCodeString = endpointResult.error.trim().substring(1, 4);
+                        statusCode = parseInt(statusCodeString);
+                    }
+                }
+                catch (err) {
+                    console.error(err);
+                }
                 return res.status(statusCode).send(endpointResult);
             }));
         }

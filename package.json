@@ -1,12 +1,16 @@
 {
   "name": "degen-route-loader",
-  "version": "0.27.0",
+  "version": "0.28.0",
   "description": "Load routes to controllers for Express. This time, with more sauce",
   "main": "dist/index.js",
   "scripts": {
     "test": "NODE_ENV=test TS_NODE_PROJECT=\"tsconfig.testing.json\" mocha --require ts-node/register 'test/**/*.ts' --timeout 25000",
     "build": "tsc",
     "prepare": "husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OpenSourceMfers/degen-route-loader"
   },
   "author": "apexmfer",
   "license": "MIT",
