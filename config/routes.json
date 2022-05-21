@@ -1,4 +1,4 @@
 [ 
-    {"type":"get","uri":"/api/ping","preHooks":[], "method":"ping","controller":"api"}
- 
+    {"type":"post","uri":"/api/ping","preHooks":[{"method":"authenticate","controller":"auth"}], "method":"ping","controller":"api"}
+        
 ]

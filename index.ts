@@ -9,17 +9,24 @@ export type ControllerMethod = (req: any) => Promise<AssertionResponse>
 export interface Route {
   type:string,
   uri: string,
-  method: string,
-  preHooks?: Array<string>
-  controller?: string
+  method: string, 
+  controller: string,
+  preHooks?: Array<PreHookDeclaration>
+  
   appendParams?: any
 }
 
-export interface AssertionResponse{
+export interface AssertionResponse {
   success:boolean,
   data?: any,
   error?: string 
 }
+
+export interface PreHookDeclaration {
+  method: string,
+  controller: string 
+}
+
 export interface Config {
   verboseLogging?: boolean 
 }
@@ -30,6 +37,9 @@ export interface Config {
 const configDefaults: Config = {
   verboseLogging:false 
 }
+
+
+let controllersMap = new Map<String,any>()
 
 
 export default class DegenRouteLoader {
@@ -43,13 +53,18 @@ export default class DegenRouteLoader {
   }
  
 
-  loadRoutes(expressApp: any, routesConfig: Array<Route>, controllerClass: any) {
+  registerController(name:string, controllerClass: any ) {
+    controllersMap.set(name, controllerClass);
+  }
+
+
+  loadRoutes(expressApp: any, routesConfig: Array<Route> ) {
     for (const route of routesConfig) {
-      this.configureRoute(expressApp, route, controllerClass)
+      this.configureRoute(expressApp, route )
     }
   }
 
-  configureRoute(expressApp: any, route: Route, controllerClass: any) {
+  configureRoute(expressApp: any, route: Route ) {
     
     if(this.config.verboseLogging){
       console.log('configuring route', route)
@@ -58,10 +73,11 @@ export default class DegenRouteLoader {
     let restAction: string = route.type 
     let endpointURI: string = route.uri
     let methodName: string = route.method 
+    let controllerName: string = route.controller
 
 
     let appendParams: any = route.appendParams ? JSON.parse(JSON.stringify( route.appendParams )) : undefined
-    let preHooks: string[]  = route.preHooks ? route.preHooks : []
+    let preHooks: PreHookDeclaration[]  = route.preHooks ? route.preHooks : []
 
     if (typeof endpointURI != 'string' ) {
       throw 'Error: invalid route format for endpointURI'
@@ -82,8 +98,15 @@ export default class DegenRouteLoader {
       type: restAction,
       uri: endpointURI,
       method: methodName,
+      controller: controllerName,
       appendParams,
       preHooks 
+    }
+
+    let controllerClass = controllersMap.get(controllerName)
+
+    if(!controllerClass){
+      throw new Error(`Controller not yet registered with route loader: ${controllerName}`)
     }
 
     if (restAction == 'get' || restAction == 'post') {
@@ -112,12 +135,12 @@ export default class DegenRouteLoader {
 
   async performEndpointActions(  req: any, controllerClass: any, route: Route ) : Promise<AssertionResponse>{
  
-    let methodName = route.method
+    let methodName:string = route.method
     let preHooks = route.preHooks
 
 
     if(preHooks){
-     let combinedPreHooksResponse:AssertionResponse = await this.runPreHooks(controllerClass,preHooks,req)
+     let combinedPreHooksResponse:AssertionResponse = await this.runPreHooks(preHooks,req)
       
       if(!combinedPreHooksResponse.success){
         return {success:false, error: combinedPreHooksResponse.error }
@@ -130,10 +153,13 @@ export default class DegenRouteLoader {
     return methodResponse  
   }
 
-  async runPreHooks(controllerClass:any, preHooks:string[], req:any  ) : Promise<AssertionResponse>{
+  async runPreHooks(preHooks:PreHookDeclaration[], req:any  ) : Promise<AssertionResponse>{
 
     for(let preHook of preHooks){
-      let methodResponse:AssertionResponse = await controllerClass[preHook](req)
+      let methodName = preHook.method
+      let controllerClass = controllersMap.get(preHook.controller)
+
+      let methodResponse:AssertionResponse = await controllerClass[methodName](req)
 
       if(!methodResponse.success){
         return methodResponse
