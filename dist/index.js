@@ -13,22 +13,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const configDefaults = {
     verboseLogging: false
 };
+let controllersMap = new Map();
 class DegenRouteLoader {
     constructor(conf) {
         this.config = Object.assign(Object.assign({}, configDefaults), conf);
     }
-    loadRoutes(expressApp, routesConfig, controllerClass) {
+    registerController(name, controllerClass) {
+        controllersMap.set(name, controllerClass);
+    }
+    loadRoutes(expressApp, routesConfig) {
         for (const route of routesConfig) {
-            this.configureRoute(expressApp, route, controllerClass);
+            this.configureRoute(expressApp, route);
         }
     }
-    configureRoute(expressApp, route, controllerClass) {
+    configureRoute(expressApp, route) {
         if (this.config.verboseLogging) {
             console.log('configuring route', route);
         }
         let restAction = route.type;
         let endpointURI = route.uri;
         let methodName = route.method;
+        let controllerName = route.controller;
         let appendParams = route.appendParams ? JSON.parse(JSON.stringify(route.appendParams)) : undefined;
         let preHooks = route.preHooks ? route.preHooks : [];
         if (typeof endpointURI != 'string') {
@@ -45,9 +50,14 @@ class DegenRouteLoader {
             type: restAction,
             uri: endpointURI,
             method: methodName,
+            controller: controllerName,
             appendParams,
             preHooks
         };
+        let controllerClass = controllersMap.get(controllerName);
+        if (!controllerClass) {
+            throw new Error(`Controller not yet registered with route loader: ${controllerName}`);
+        }
         if (restAction == 'get' || restAction == 'post') {
             expressApp[restAction](endpointURI, (req, res) => __awaiter(this, void 0, void 0, function* () {
                 req = DegenRouteLoader.appendParams(req, appendParams);
@@ -71,7 +81,7 @@ class DegenRouteLoader {
             let methodName = route.method;
             let preHooks = route.preHooks;
             if (preHooks) {
-                let combinedPreHooksResponse = yield this.runPreHooks(controllerClass, preHooks, req);
+                let combinedPreHooksResponse = yield this.runPreHooks(preHooks, req);
                 if (!combinedPreHooksResponse.success) {
                     return { success: false, error: combinedPreHooksResponse.error };
                 }
@@ -80,10 +90,12 @@ class DegenRouteLoader {
             return methodResponse;
         });
     }
-    runPreHooks(controllerClass, preHooks, req) {
+    runPreHooks(preHooks, req) {
         return __awaiter(this, void 0, void 0, function* () {
             for (let preHook of preHooks) {
-                let methodResponse = yield controllerClass[preHook](req);
+                let methodName = preHook.method;
+                let controllerClass = controllersMap.get(preHook.controller);
+                let methodResponse = yield controllerClass[methodName](req);
                 if (!methodResponse.success) {
                     return methodResponse;
                 }
