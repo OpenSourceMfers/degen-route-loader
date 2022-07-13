@@ -72,6 +72,9 @@ class DegenRouteLoader {
                 catch (err) {
                     console.error(err);
                 }
+                if (endpointResult.specialAction && endpointResult.specialAction == "redirect") {
+                    return res.status(statusCode).redirect(endpointResult.data.url);
+                }
                 return res.status(statusCode).send(endpointResult);
             }));
         }
