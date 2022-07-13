@@ -19,7 +19,8 @@ export interface Route {
 export interface AssertionResponse {
   success:boolean,
   data?: any,
-  error?: string 
+  error?: string ,
+  specialAction?: string 
 }
 
 export interface PreHookDeclaration {
@@ -126,6 +127,11 @@ export default class DegenRouteLoader {
           }
         }catch(err){
           console.error(err)
+        }
+
+        if(endpointResult.specialAction && endpointResult.specialAction == "redirect"){
+
+          return res.status(statusCode).redirect(endpointResult.data.url)
         }
 
         return res.status(statusCode).send(endpointResult)
