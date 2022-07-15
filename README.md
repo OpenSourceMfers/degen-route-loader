@@ -24,7 +24,7 @@
  
         const degenRouteLoader = new DegenRouteLoader()
         degenRouteLoader.loadRoutes( app, Routes , this.apiController  )
-        // Dont forget you can load routes for multiple controllers
+        // Dont forget you can load routes for multiple controllers by calling this multiple times
 
         app.listen(apiPort, () => {
         console.log(`API Server listening at http://localhost:${apiPort}`)
