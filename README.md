@@ -15,7 +15,7 @@
 
         const Routes = JSON.parse( fs.readFileSync('./server/routes/routes.json') )
 
-        this.apiController=new APIController(  )
+        const apiController=new APIController()
                 
 
        
@@ -23,7 +23,7 @@
         const app = express()
  
         const degenRouteLoader = new DegenRouteLoader()
-        degenRouteLoader.loadRoutes( app, Routes , this.apiController  )
+        degenRouteLoader.loadRoutes( app, Routes , apiController  )
         // Dont forget you can load routes for multiple controllers by calling this multiple times
 
         app.listen(apiPort, () => {
