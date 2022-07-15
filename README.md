@@ -59,8 +59,7 @@ preHooks: An array of  {method:string, controller:string} which will be run befo
 
   [ 
     {"type":"get","uri":"/api/ping","method":"ping","controller":"api"}
- 
-]
+ ]
 
 
 ## In your controller class
