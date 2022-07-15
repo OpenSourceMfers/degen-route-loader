@@ -72,8 +72,9 @@ preHooks: An array of  {method:string, controller:string} which will be run befo
 
         export default class APIController  {
 
+            //Returns an AssertionResponse which flows back through this plugin 
             ping: APIMethod =  async (req: any) => {
-                return res.status(200).send('Pong')
+                return {success:true, data:'pong'}
             }
 
         }
@@ -82,7 +83,7 @@ preHooks: An array of  {method:string, controller:string} which will be run befo
 
 ## Assertion Response 
 
-An assertion response is the response that your api controller returns from its controller method.  It contains 
+An assertion response is the response that your api controller returns from its controller method.  It contains :
 
 *success* - A boolean indicating if the method errored or not (prehooks that error will cancel the route flow) 
 
