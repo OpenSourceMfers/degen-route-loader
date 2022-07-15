@@ -14,6 +14,8 @@ const configDefaults = {
     verboseLogging: false
 };
 let controllersMap = new Map();
+const validPrehookActions = ['setCookie', 'reject', 'redirect'];
+const terminationActions = ['reject', 'redirect']; //these terminate the response chain 
 class DegenRouteLoader {
     constructor(conf) {
         this.config = Object.assign(Object.assign({}, configDefaults), conf);
@@ -61,39 +63,54 @@ class DegenRouteLoader {
         if (restAction == 'get' || restAction == 'post') {
             expressApp[restAction](endpointURI, (req, res) => __awaiter(this, void 0, void 0, function* () {
                 req = DegenRouteLoader.appendParams(req, appendParams);
-                let endpointResult = yield this.performEndpointActions(req, controllerClass, formattedRouteData);
+                let endpointResult = yield this.performEndpointActions(req, res, controllerClass, formattedRouteData);
                 let statusCode = 200;
-                try {
-                    if (endpointResult.error && endpointResult.error.trim().startsWith('#')) {
-                        let statusCodeString = endpointResult.error.trim().substring(1, 4);
-                        statusCode = parseInt(statusCodeString);
-                    }
-                }
-                catch (err) {
-                    console.error(err);
-                }
-                if (endpointResult.specialAction && endpointResult.specialAction == "redirect") {
-                    return res.status(statusCode).redirect(endpointResult.data.url);
+                /*try{
+                  if(endpointResult.error && endpointResult.error.trim().startsWith('#')){
+                    let statusCodeString = endpointResult.error.trim().substring(1,4)
+                    statusCode = parseInt(statusCodeString)
+                  }
+                }catch(err){
+                  console.error(err)
+                }*/
+                if (endpointResult.specialAction) {
+                    return this.handleSpecialActions(endpointResult, res);
+                    //return res.status(statusCode).redirect(endpointResult.data.url)
                 }
                 return res.status(statusCode).send(endpointResult);
             }));
         }
     }
-    performEndpointActions(req, controllerClass, route) {
+    handleSpecialActions(assertionResponse, res) {
+        if (assertionResponse.specialAction == "reject") {
+            return res.status(401).send(assertionResponse.data);
+        }
+        if (assertionResponse.specialAction == "redirect") {
+            return res.status(302).redirect(assertionResponse.data.url);
+        }
+        if (assertionResponse.specialAction == "setCookie") {
+            return res.cookie(assertionResponse.data.key, assertionResponse.data.value);
+        }
+    }
+    performEndpointActions(req, res, controllerClass, route) {
         return __awaiter(this, void 0, void 0, function* () {
             let methodName = route.method;
             let preHooks = route.preHooks;
             if (preHooks) {
-                let combinedPreHooksResponse = yield this.runPreHooks(preHooks, req);
+                let combinedPreHooksResponse = yield this.runPreHooks(preHooks, req, res);
                 if (!combinedPreHooksResponse.success) {
-                    return { success: false, error: combinedPreHooksResponse.error };
+                    return combinedPreHooksResponse;
+                }
+                //if a prehook does a termination action, just do it and dont keep going 
+                if (combinedPreHooksResponse.specialAction && terminationActions.includes(combinedPreHooksResponse.specialAction)) {
+                    return combinedPreHooksResponse;
                 }
             }
             let methodResponse = yield controllerClass[methodName](req);
             return methodResponse;
         });
     }
-    runPreHooks(preHooks, req) {
+    runPreHooks(preHooks, req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             for (let preHook of preHooks) {
                 let methodName = preHook.method;
@@ -101,6 +118,17 @@ class DegenRouteLoader {
                 let methodResponse = yield controllerClass[methodName](req);
                 if (!methodResponse.success) {
                     return methodResponse;
+                }
+                //if any prehooks run a special action and it is a termination type action, just do that 
+                if (methodResponse.specialAction && terminationActions.includes(methodResponse.specialAction)) {
+                    return methodResponse;
+                }
+                if (methodResponse.specialAction) {
+                    if (!validPrehookActions.includes(methodResponse.specialAction)) {
+                        throw new Error(`Invalid action for a prehook: ${methodResponse.specialAction}`);
+                    }
+                    this.handleSpecialActions(methodResponse, res);
+                    //return res.status(statusCode).redirect(endpointResult.data.url)
                 }
             }
             return { success: true };

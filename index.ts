@@ -41,6 +41,8 @@ const configDefaults: Config = {
 
 
 let controllersMap = new Map<String,any>()
+ 
+const terminationActions = ['reject','redirect'] //these terminate the response chain 
 
 
 export default class DegenRouteLoader {
@@ -116,22 +118,22 @@ export default class DegenRouteLoader {
         req = DegenRouteLoader.appendParams(req, appendParams)
  
 
-        let endpointResult:AssertionResponse = await this.performEndpointActions(req, controllerClass, formattedRouteData)
+        let endpointResult:AssertionResponse = await this.performEndpointActions(req, res, controllerClass, formattedRouteData)
  
         let statusCode = 200 
 
-        try{
+        /*try{
           if(endpointResult.error && endpointResult.error.trim().startsWith('#')){
             let statusCodeString = endpointResult.error.trim().substring(1,4)
             statusCode = parseInt(statusCodeString)
           }
         }catch(err){
           console.error(err)
-        }
+        }*/
 
-        if(endpointResult.specialAction && endpointResult.specialAction == "redirect"){
-
-          return res.status(statusCode).redirect(endpointResult.data.url)
+        if( endpointResult.specialAction ){
+          return this.handleSpecialActions(endpointResult, res)
+          //return res.status(statusCode).redirect(endpointResult.data.url)
         }
 
         return res.status(statusCode).send(endpointResult)
@@ -139,17 +141,41 @@ export default class DegenRouteLoader {
     } 
   }
 
-  async performEndpointActions(  req: any, controllerClass: any, route: Route ) : Promise<AssertionResponse>{
+  handleSpecialActions( assertionResponse: AssertionResponse, res: any  ){
+
+    if(assertionResponse.specialAction == "reject"){
+
+      return res.status(401).send(assertionResponse.data)
+    }
+
+    if(assertionResponse.specialAction == "redirect"){
+
+      return res.status(302).redirect(assertionResponse.data.url)
+    }
+
+    if(assertionResponse.specialAction == "setCookie"){
+
+      return res.cookie( assertionResponse.data.key, assertionResponse.data.value  )
+    }
+
+  }
+
+  async performEndpointActions(  req: any, res:any ,  controllerClass: any, route: Route ) : Promise<AssertionResponse>{
  
     let methodName:string = route.method
     let preHooks = route.preHooks
 
 
     if(preHooks){
-     let combinedPreHooksResponse:AssertionResponse = await this.runPreHooks(preHooks,req)
+     let combinedPreHooksResponse:AssertionResponse = await this.runPreHooks(preHooks,req, res)
       
       if(!combinedPreHooksResponse.success){
-        return {success:false, error: combinedPreHooksResponse.error }
+        return combinedPreHooksResponse
+      }
+
+      //if a prehook does a termination action, just do it and dont keep going 
+      if(combinedPreHooksResponse.specialAction && terminationActions.includes( combinedPreHooksResponse.specialAction) ){
+        return combinedPreHooksResponse
       }
     }
 
@@ -159,7 +185,7 @@ export default class DegenRouteLoader {
     return methodResponse  
   }
 
-  async runPreHooks(preHooks:PreHookDeclaration[], req:any  ) : Promise<AssertionResponse>{
+  async runPreHooks(preHooks:PreHookDeclaration[], req:any, res:any   ) : Promise<AssertionResponse>{
 
     for(let preHook of preHooks){
       let methodName = preHook.method
@@ -170,6 +196,17 @@ export default class DegenRouteLoader {
       if(!methodResponse.success){
         return methodResponse
       }
+
+      //if any prehooks run a special action and it is a termination type action, just do that 
+      if( methodResponse.specialAction && terminationActions.includes( methodResponse.specialAction ) ){
+        return methodResponse
+      }
+
+      //if any prehook runs a special action and it is not terminating, run it and keep going 
+      if(  methodResponse.specialAction ){
+        this.handleSpecialActions(methodResponse, res)       
+      }
+
     }
 
     return { success:true } 
