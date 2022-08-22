@@ -15,7 +15,7 @@
 
         const Routes = JSON.parse( fs.readFileSync('./server/routes/routes.json') )
 
-        this.apiController=new APIController(  )
+        const apiController=new APIController()
                 
 
        
@@ -23,7 +23,8 @@
         const app = express()
  
         const degenRouteLoader = new DegenRouteLoader()
-        degenRouteLoader.loadRoutes( app, Routes , this.apiController  )
+        degenRouteLoader.loadRoutes( app, Routes , apiController  )
+        // Dont forget you can load routes for multiple controllers by calling this multiple times
 
         app.listen(apiPort, () => {
         console.log(`API Server listening at http://localhost:${apiPort}`)
@@ -51,13 +52,14 @@ appendParams: An object that will be appended to 'req' just before it is passed 
 
 preHooks: An array of  {method:string, controller:string} which will be run before the primary method.  If any of these return {success:false, error?: string} then the overall REST api call will fail due to that prehook.  Useful for authentication prehooks and such - which will likely be shared by multiple routes.
 
+
+
 ## In routes.json 
 
 
   [ 
     {"type":"get","uri":"/api/ping","method":"ping","controller":"api"}
- 
-]
+ ]
 
 
 ## In your controller class
@@ -69,16 +71,38 @@ preHooks: An array of  {method:string, controller:string} which will be run befo
 
         export default class APIController  {
 
+            //Returns an AssertionResponse which flows back through this plugin 
             ping: APIMethod =  async (req: any) => {
-                return res.status(200).send('Pong')
+                return {success:true, data:'pong'}
             }
 
         }
 
 
 
-## Status Codes
+## Assertion Response 
 
-If a route contains an error and that error begins with '#___' where '___' is a three digit code, the REST response will not return a 200 status code but instead that three digit code preceeding the error. 
+An assertion response is the response that your api controller returns from its controller method.  It contains :
 
-Otherwise, error messages are not allowed to start with the character #.  
+*success* - A boolean indicating if the method errored or not (prehooks that error will cancel the route flow) 
+
+*data* - Optional param that can contain anything.  This will be sent to the user as json by default (no special action) 
+
+*error* - Optional string for an error message to return if success is false 
+
+*specialAction* - Optional string for specifying that you want express (via this plugin) to perform an action other than returning data as json.  See the section titled Special Actions. 
+
+
+
+
+## Special Actions
+
+You can specify a specialAction on any route or prehook in order to accomplish special tasks like a redirect or setting cookies. 
+
+*setCookie* - Sets a cookie on the client side using data.key and data.value.   Most typically used in a preHook so that the primary route can then redirect.  Useful for authentication flow.
+
+*reject* - Will return a 401 status code 
+
+*redirect* - Will redirect to data.url 
+
+If a prehook performs a "response terminating" action like a reject or redirect then no other prehooks will run nor will the primary route.  The route response flow will end.  
