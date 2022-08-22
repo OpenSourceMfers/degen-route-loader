@@ -14,7 +14,6 @@ const configDefaults = {
     verboseLogging: false
 };
 let controllersMap = new Map();
-const validPrehookActions = ['setCookie', 'reject', 'redirect'];
 const terminationActions = ['reject', 'redirect']; //these terminate the response chain 
 class DegenRouteLoader {
     constructor(conf) {
@@ -123,12 +122,9 @@ class DegenRouteLoader {
                 if (methodResponse.specialAction && terminationActions.includes(methodResponse.specialAction)) {
                     return methodResponse;
                 }
+                //if any prehook runs a special action and it is not terminating, run it and keep going 
                 if (methodResponse.specialAction) {
-                    if (!validPrehookActions.includes(methodResponse.specialAction)) {
-                        throw new Error(`Invalid action for a prehook: ${methodResponse.specialAction}`);
-                    }
                     this.handleSpecialActions(methodResponse, res);
-                    //return res.status(statusCode).redirect(endpointResult.data.url)
                 }
             }
             return { success: true };
