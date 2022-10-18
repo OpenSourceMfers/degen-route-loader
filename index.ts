@@ -16,9 +16,9 @@ export interface Route {
   appendParams?: any
 }
 
-export interface AssertionResponse {
+export interface AssertionResponse<T = any> {
   success:boolean,
-  data?: any,
+  data?: T,
   error?: string ,
   specialAction?: string 
 }
