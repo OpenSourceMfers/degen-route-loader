@@ -118,25 +118,30 @@ export default class DegenRouteLoader {
         req = DegenRouteLoader.appendParams(req, appendParams)
  
 
-        let endpointResult:AssertionResponse = await this.performEndpointActions(req, res, controllerClass, formattedRouteData)
- 
-        let statusCode = 200 
+        try{
+          let endpointResult:AssertionResponse = await this.performEndpointActions(req, res, controllerClass, formattedRouteData)
+  
+          let statusCode = 200 
 
-        /*try{
-          if(endpointResult.error && endpointResult.error.trim().startsWith('#')){
-            let statusCodeString = endpointResult.error.trim().substring(1,4)
-            statusCode = parseInt(statusCodeString)
+          /*try{
+            if(endpointResult.error && endpointResult.error.trim().startsWith('#')){
+              let statusCodeString = endpointResult.error.trim().substring(1,4)
+              statusCode = parseInt(statusCodeString)
+            }
+          }catch(err){
+            console.error(err)
+          }*/
+
+          if( endpointResult.specialAction ){
+            return this.handleSpecialActions(endpointResult, res)
+            //return res.status(statusCode).redirect(endpointResult.data.url)
           }
-        }catch(err){
-          console.error(err)
-        }*/
 
-        if( endpointResult.specialAction ){
-          return this.handleSpecialActions(endpointResult, res)
-          //return res.status(statusCode).redirect(endpointResult.data.url)
+          return res.status(statusCode).send(endpointResult)
+        }catch(error){
+
+          return res.status(400).send(error)
         }
-
-        return res.status(statusCode).send(endpointResult)
       })
     } 
   }
@@ -178,7 +183,7 @@ export default class DegenRouteLoader {
         return combinedPreHooksResponse
       }
     }
-
+    
     let methodResponse:AssertionResponse = await controllerClass[methodName](req)
 
 

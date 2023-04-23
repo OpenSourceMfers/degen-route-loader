@@ -62,21 +62,26 @@ class DegenRouteLoader {
         if (restAction == 'get' || restAction == 'post') {
             expressApp[restAction](endpointURI, (req, res) => __awaiter(this, void 0, void 0, function* () {
                 req = DegenRouteLoader.appendParams(req, appendParams);
-                let endpointResult = yield this.performEndpointActions(req, res, controllerClass, formattedRouteData);
-                let statusCode = 200;
-                /*try{
-                  if(endpointResult.error && endpointResult.error.trim().startsWith('#')){
-                    let statusCodeString = endpointResult.error.trim().substring(1,4)
-                    statusCode = parseInt(statusCodeString)
-                  }
-                }catch(err){
-                  console.error(err)
-                }*/
-                if (endpointResult.specialAction) {
-                    return this.handleSpecialActions(endpointResult, res);
-                    //return res.status(statusCode).redirect(endpointResult.data.url)
+                try {
+                    let endpointResult = yield this.performEndpointActions(req, res, controllerClass, formattedRouteData);
+                    let statusCode = 200;
+                    /*try{
+                      if(endpointResult.error && endpointResult.error.trim().startsWith('#')){
+                        let statusCodeString = endpointResult.error.trim().substring(1,4)
+                        statusCode = parseInt(statusCodeString)
+                      }
+                    }catch(err){
+                      console.error(err)
+                    }*/
+                    if (endpointResult.specialAction) {
+                        return this.handleSpecialActions(endpointResult, res);
+                        //return res.status(statusCode).redirect(endpointResult.data.url)
+                    }
+                    return res.status(statusCode).send(endpointResult);
                 }
-                return res.status(statusCode).send(endpointResult);
+                catch (error) {
+                    return res.status(400).send(error);
+                }
             }));
         }
     }
