@@ -15,7 +15,7 @@
   "author": "apexmfer",
   "license": "MIT",
   "dependencies": {
-    "ts-node": "^9.1.1"
+    "ts-node": "^10.8.1"
   },
   "devDependencies": {
     "@types/chai": "^4.3.0",
@@ -27,6 +27,6 @@
     "express": "^4.17.3",
     "husky": "^7.0.4",
     "mocha": "^9.2.2",
-    "typescript": "^4.6.3"
+    "typescript": "^4.6.5"
   }
 }
