@@ -1,6 +1,6 @@
 {
   "name": "degen-route-loader",
-  "version": "0.35.1",
+  "version": "0.35.2",
   "description": "Load routes to controllers for Express. This time, with more sauce",
   "main": "dist/index.js",
   "scripts": {
